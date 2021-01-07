@@ -1,0 +1,8 @@
+#!/bin/bash
+#Compiling script for CS344 assignment 4 OTP. 
+
+gcc -o keygen keygen.c
+gcc -o otp_enc otp_enc.c helper.c
+gcc -o otp_enc_d otp_enc_d.c helper.c 
+gcc -o otp_dec otp_dec.c helper.c
+gcc -o otp_dec_d otp_dec_d.c helper.c

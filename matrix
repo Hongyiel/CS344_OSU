@@ -1,0 +1,395 @@
+#!/bin/bash
+# NAME: HONGYIEL SUH
+# suhho@os1.engr.oregonstate.edu
+
+
+# description:
+# This function consists fo  dims, add, transpose, mean and multiply
+# dims function give column and row, input should one INPUT
+# add function make two files add each others: it made by 1 demention array
+# transpose function used file management
+# mean function used file management it will use file each times during while loop and for LOOP
+# Multiply function - I tried to make in file management system
+########################################################### dims function
+dims(){
+i=0
+row=0
+column=0
+#count column and row
+while read line					      	# get row and col
+  do
+    if [ "$line" == "" ]
+    then
+      echo "ERROR" 1>&2
+      exit 1
+    fi
+
+    row=`expr $row + 1`		     	# Big loop (While) inside loop for
+    if [ $column == 0 ]
+    then
+      for cell in $line
+        do
+          column=`expr $column + 1`
+        done
+    fi
+    # get col count (this will need to devide with row count because the loop will repeat in row count number
+  done <"${1:-/dev/stdin}" #system command that get argument file with stdin (1) stdout (2? 3?)
+  if [ "$row" -eq 0 ] &&  [ "$column" -eq 0 ]
+  then
+    echo "ERROR <row and column is 0>" 1>&2
+    exit 1
+  fi
+  # get real col count
+echo "$row $column"
+
+
+}
+######################################### add function
+########################################################### ADD function start
+add(){
+
+declare -A matrix
+  ##### ##### #####
+  #count column and row
+##################
+while read matrix_A && read matrix_B <&3
+do
+  j=1
+        #statements
+      while (( "$j" <= "$count_col1" ))
+      do
+              arr1[j]=$( echo "$matrix_A" | cut -f "$j" )
+              arr2[j]=$( echo "$matrix_B" | cut -f "$j" )
+              #get cell by cell
+              # if [ "${arr2[$j]}" == "" ] && [ "${arr2[$j]}" == "" ]
+              # then
+              #   echo "ERROR"
+              #   exit 1
+              # fi
+              temp_arr[j]=`expr ${arr1[j]} + ${arr2[j]}`
+              if [ $j -lt $count_col1 ]
+              then
+              printf -- '%s\t' "${temp_arr[j]}"
+            else
+              printf -- "${temp_arr[j]}"
+            fi
+            # print array when j is lower than column
+            # if j is ge than column give just array except \t
+
+              j=`expr $j + 1`
+      done
+
+               printf -- '\n'
+done < "$1" 3<"$2"
+
+  # ex) a[row][column]
+  #c o l u m n ->
+#r
+#o
+#w
+
+  ##### ##### #####
+  ##### Start adding function if all statements are good
+  #  echo "add function"
+}
+##################################################################### transpose
+transpose(){
+  count_row1=`cat $1 | wc -l`
+  count_col1=`head -1 $1 | wc -w`
+  tmp_count=1
+  tmp_give_count=1
+
+#get row each file and keep traking col
+
+  while read get_row
+  do
+    echo "$get_row" > tmp_get$tmp_count
+    tmp_count=`expr $tmp_count + 1`
+  done < $1
+  #get data from m1 and give data of row (read line by line )to tmp_get# files
+  devide_col=`seq 1 $count_col1`
+  devide_row=`seq 1 $count_row1`
+  #devide row and col result
+  for i in $devide_col
+  do
+    for i in $devide_row
+    do
+      if [ $i -ne $count_row1 ]
+       then
+         cut -f $tmp_give_count tmp_get$i > get_info$i
+         read file_1 < get_info$i
+         printf -- "$file_1\t"
+       else
+         cut -f $tmp_give_count tmp_get$i > get_info$i
+         read file_1 < get_info$i
+         printf -- "$file_1"
+      fi
+    done
+    printf "\n"
+    tmp_give_count=`expr $tmp_give_count + 1`
+  done
+#delete files
+  rm -f tmp*
+  rm -f get_info*
+}
+####################################################################### mean
+mean(){
+i=1
+tmp_count=1
+count_row1=`cat $1 | wc -l`
+count_col1=`head -1 $1 | wc -w`
+
+  read get_row < $1 #m1
+
+  for i in $get_row
+  do
+    cut -f $tmp_count $1 >> tmp_get$tmp_count
+    # cat tmp_get$tmp_count
+    tmp_count=`expr $tmp_count + 1`
+  done
+    # tmp_get will get numbers that cut by column (col data will input)
+    tmp_give_count=1
+    sum_data=0
+    # init sum  and tmp_give_count data
+    for i in $get_row
+    do
+      # echo "This"
+      row_mean=0
+      while read get_data
+      do
+        row_mean=`expr $row_mean + 1`
+        # echo $row_mean
+        # echo "This2"
+        sum_data=`expr $sum_data + $get_data`
+        # echo "this is sum_data"
+        # echo $sum_data
+
+      done <tmp_get$tmp_give_count
+
+      echo "$sum_data" >> tmp_sum_data
+
+      sum_data=0
+      tmp_give_count=`expr $tmp_give_count + 1`
+      # echo $tmp_give_count
+    done
+    #getting data line by line (row) individually file1 2 3 ,,,
+    #then
+    #getting data column by column in big loop
+    #input result data to tmp_sum_data
+    #then initialization sum_data to zero : because need to compare next column.
+
+    # below function will calculate and cmpare each to round up for get into data in result files
+    tmp_give_count2=2
+    ## this because incremented aftet interation
+    while read sum_number_data
+     do
+       # echo $tmp_give_count2
+       # echo $tmp_give_count
+       #(a + (b/2)*( (a>0)*2-1 )) / b
+       #Using this function
+      ((get_data_mean = ($sum_number_data + ($row_mean/2)*(($sum_number_data>0)*2-1 )) / $row_mean))
+      echo $get_data_mean >> tmp_mean
+    done < tmp_sum_data
+    #print_out = temp_mean
+      while read print_out
+      do
+        #compare tab -> last sentence is not allowed input tab
+        if [ $tmp_give_count -ne $tmp_give_count2 ]
+        then
+          printf -- "$print_out\t"
+        else
+          printf -- "$print_out"
+        fi
+        tmp_give_count2=`expr $tmp_give_count2 + 1`
+      done < tmp_mean
+      printf -- "\n"
+
+      rm -f tmp*
+      #remove file
+}
+###########################################################Multiply with file
+multiply(){
+
+#start_time=$(date "+%Y-%m-%d---%H:%M:%S")
+#echo "multiply-$start_time"
+  row_A=`cat "$1" | wc -l`
+  row_B=`cat "$2" | wc -l`
+  col_A=`head -1 "$1" | wc -w`
+  col_B=`head -1 "$2" | wc -w`
+
+  rm -f temp*
+  #Check valid row and col are available
+  if [ "$col_A" == "$row_B" ]
+  then
+
+    while read matrix_A
+    do
+      read matrix_B < $2
+      k=0 # it's col_B index
+      i=0 # it's col_A index
+
+      for dummy in $matrix_B
+      do
+        ((k++)) #  col_B index
+        cut -f $k $2 > tempCol_B ## get B data [j-low][k-col]echo "matrix_A($matrix_A)"
+##echo "`cat tempCol_B`"
+#exit 1
+        i=0
+        dataC=0
+        for dataA in $matrix_A
+        do
+          ((i++))
+          j=0 # low_B index
+          while read dataB
+          do
+            ((j++))
+            if test $i -eq $j
+            then
+              product=$(($dataA * $dataB))
+              dataC=$(($product + $dataC))
+#echo "i,j($i)($j) dataC($dataC)" ##" = $product $dataA \* $dataB"
+            fi
+          done < tempCol_B
+        done
+#echo "i,j($i)($j) dataC($dataC)"
+        echo "$dataC" >> tempMatrixC
+      done
+    done < $1
+
+    k=0
+    while read dataC
+    do
+      ((k++))
+      if [ $k == $col_B ]
+      then
+        printf -- "$dataC"
+        echo ""
+        k=0
+      else
+        printf -- "$dataC\t"
+      fi
+    done < tempMatrixC
+  else
+    echo "ERROR: Mismatched row and col " 1>&2
+    exit 1
+  fi
+ # ending_time=$(date "+%Y-%m-%d---%H:%M:%S")
+ # echo "Multiply-$ending_time"
+
+}
+################################################################Main function
+if [ "$1" == "" ]
+then
+  echo "ERROR: nothing input" 1>&2
+  exit 1
+fi
+
+#################dims
+if [ "$1" == "dims" ]
+then
+#
+    if [[ "$#" -gt 2 ]]; then
+        #statements
+        echo "ERROR: Many files" 1>&2
+        exit 1
+
+    elif [ "$#" -lt 1 ]
+     then
+       echo "ERROR: type more" 1>&2
+       exit 1
+    fi
+      dims $2
+#
+################add
+elif [ "$1" == "add" ]
+ then  ##### get row and col then is it equal or not
+
+  if [ "$#" -ge 4 ]
+   then
+     echo "ERROR"  1>&2
+      exit 1
+  elif [ "$#" -le 2 ]
+   then
+     echo "ERROR"  1>&2
+      exit 1
+    elif [[ ! -r "$2" ]]; then
+      echo "ERROR: files unreadable" 1>&2
+      exit 1
+  fi
+  count_row1=`cat $2 | wc -l`
+  count_row2=`cat $3 | wc -l`
+  count_col1=`head -1 $2 | wc -w`
+	count_col2=`head -1 $3 | wc -w`
+  if [ "$count_row1" != "$count_row2" ]
+  then
+    echo "Row is different" 1>&2
+    exit 1
+  elif [ "$count_col1" != "$count_col2" ]
+  then
+    echo "Column is different" 1>&2
+    exit 1
+  fi
+
+  add $2 $3
+#######################mean
+elif [ "$1" == "mean" ]
+then
+
+  #
+    if [ "$#" -lt 2 ]
+    then
+        echo "ERROR: files do not exist" 1>&2
+        exit 1
+    elif [ "$#" -gt 2 ]
+     then
+        echo "ERROR: Many files" 1>&2
+        exit 1
+      elif [[ ! -r "$2" ]]; then
+        echo "ERROR: files unreadable" 1>&2
+        exit 1
+    fi
+      mean $2
+  #
+##################### transpose
+elif [ "$1" == "transpose" ]
+    then
+
+      if [[ "$#" -gt 2 ]]; then
+          #statements
+          echo "ERROR: Many files" 1>&2
+          exit 1
+      elif [[ "$#" -lt 2 ]]; then
+            #statements
+            echo "ERROR: files do not exist" 1>&2
+            exit 1
+      elif [[ ! -r "$2" ]]; then
+        echo "ERROR: files unreadable" 1>&2
+        exit 1
+      fi
+          transpose $2
+#####################multiply
+elif [ "$1" == "multiply" ]
+then
+    #statements
+  if [ "$#" -gt 3 ]
+   then
+      #statements
+      echo "ERROR: Many files" 1>&2
+      exit 1
+  elif [ "$#" -le 2 ]
+   then
+        #statements
+        echo "ERROR: Invaild input" 1>&2
+        exit 1
+  elif [ ! -r "$2" ] || [ ! -r "$3" ]
+   then
+        echo "ERROR: files unreadable" 1>&2
+        exit 1
+  fi
+  multiply $2 $3
+##################
+else
+  echo "ERROR: NOTHING INPUT - badcommand" 1>&2
+  exit 1
+fi
+exit 0

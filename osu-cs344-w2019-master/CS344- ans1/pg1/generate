@@ -1,0 +1,54 @@
+$ cat generate
+#!/bin/bash
+function generate(){
+  # NAME
+  #   generate - generate a matrix of a specified size
+  # SYNOPSIS
+  #   generate ROWS COLS RANGE
+  # DESCRIPTION
+  #   Outputs a matrix with ROWS and COLS as dimensions. If RANGE is an integer, the entries
+  #   of the matrix will be random integers in (-RANGE,+RANGE). If RANGE is a string starting
+  #   with 'Z' or 'z', the matrix will be populated with zeroes. If RANGE is a string starting
+  #   with 'O' or 'o', the matrix will be populated with ones. If RANGE is a string starting
+  #   with 'D' or 'd', the matrix will be a diagonal matrix with ones along the diagonal entries.
+  # AUTHOR
+  #   Written by Ryan Gambord (gambordr@oregonstate.edu)
+
+  [ $# -ne 3 ] && echo "invalid number of arguments" >&2      # This is equivalent to using an if statement.
+                                                              # The right side of the && operator will not
+                                                              # be evaluated unless the left side is true.
+  for arg in $1 $2
+  do
+    [[ $arg =~ [^0-9]+ ]] && echo "argument '$arg' is not an integer" >&2
+  done
+
+  y=0
+  while [ $y -lt $1 ]
+  do
+    x=0
+    ((y++))
+    while [ $x -lt $2 ]
+    do
+      ((x++))
+      case $3 in
+        [oO]*) echo -n 1;;
+        [zZ]*) echo -n 0;;
+        [dD]*) [ $x -eq $y ] && echo -n 1 || echo -n 0;;
+        *) if [[ "$3" =~ [^0-9]+ ]]
+             then
+               echo "invalid RANGE" >&2
+               exit 1
+             else
+               echo -n $(( (RANDOM - 32767 / 2) % $3 ))
+             fi;;
+      esac
+      if [ $x -ne $2 ]
+      then
+        echo -ne "\t"
+      else
+        echo
+      fi
+    done
+  done
+}
+generate $1 $2 $3

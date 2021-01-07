@@ -1,0 +1,12 @@
+#Assignment 4: OTP
+#Christopher Rico
+#CS344
+#OSU ID: 933239746
+#compileall script: compiles all five programs for immediate use.
+
+#!/bin/bash
+gcc keygen.c -o keygen
+gcc otp_enc_d.c -o otp_enc_d
+gcc otp_enc.c -o otp_enc
+gcc otp_dec.c -o otp_dec
+gcc otp_dec_d.c -o otp_dec_d

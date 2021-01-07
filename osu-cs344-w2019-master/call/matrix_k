@@ -1,0 +1,400 @@
+#!/bin/bash
+
+#CS344_Winter_2020
+#Program1
+#Name: Kwanghyuk Kim
+
+#function for printing the dimensions of the matrix as the number of rows and cols
+dims() {
+	#initialize 0 for row and col
+	row=0
+	col=0
+	#while reading a file
+	while read line
+	do
+		#increment row++
+		row=$(expr $row + 1)
+		if [ $col == 0 ]; then
+			for i in $line
+			do
+				#increment col++
+				col=$(expr $col + 1)
+			done
+		fi
+	#takes $1 if defined, or the own standard input file name is used
+	done < $1
+	#print row and col counted
+	echo "$row $col"
+}
+
+#function for printing the transposed value of two MxN matrices
+transpose() {
+	#convert each files as rowtoColFile, transposeFile
+	valRowtoCol="rowtoColFile"
+	transposed="transposeFile"
+	#cut the blanks between numbers and get the number of cols
+	col=$(dims $1 | cut -d ' ' -f2)
+	i=1
+	#loop 1 to number of cols
+	while [ $i -le $col ]
+	do
+		#move all values to the 1st col and store them to rowtoColFile
+		cut -f "$i" "$1" > "$valRowtoCol"
+		#convert col to row and store the values to transposed
+		tr '\n' '\t' < "$valRowtoCol" >> "$transposed"
+		#add a new line at each rows
+		printf "\n" >> "$transposed"
+		#increment i++
+		i=$(expr $i + 1)
+	done
+	#print values from transposeFile
+	cat "$transposed"
+	#delete all temp files
+	rm $valRowtoCol
+	rm $transposed
+}
+
+#function for printing the mean value of two MxN matrices
+mean() {
+	#convert each files as valMeanFile, valAverageFile, valColFile
+	valMean="valMeanFile"
+	valAvg="valAverageFile"
+	valCol="valColFile"
+	#cut the blanks between numbers and get the number of cols
+	col=$(dims $1 | cut -d ' ' -f2)
+
+	count=0
+
+
+	num=$col
+
+
+
+	#initialize 0 for row, sum, and avg
+	sum=0
+	row=0
+	avg=0
+	i=1
+	#loop 1 to number of cols
+	while [ $i -le $col ]
+	do
+		#move all values to the 1st col and store them to valColFile
+		cut -f "$i" "$1" > "$valCol"
+		sum=0
+		#while reading a file
+		while read line
+		do
+			# if [ $line -gt 0 ]; then
+			#
+			# fi
+			#increment row++
+			row=$(expr $row + 1)
+			#add up the values in each column
+			sum=$(expr $sum + $line)
+			# sum=$(expr $(expr $line + $(expr $row / 2) \* $(expr $(expr $(expr $sum \* 2) - 1)) ) / $row)
+			# average = sum / row
+			avg=$(expr $sum / $row)
+		#use the filename specified as valColFile for input
+		done < $valCol
+		#store average values to valAvg
+		echo "$avg" > "$valAvg"
+		echo "out side if"
+		if [ $count -ne $num ]; then
+			# echo $count
+			# echo $num
+			#convert col to row and store the values to valMean
+			cat "$valAvg" >> "$valMean$count"
+			cat $valMean$count
+			# printf '\t'
+		else
+			# tr -d ' \t' < "$valAvg" >> "$valMean"
+			# tr '\n' '' < "$valAvg" >> "$valMean"
+			printf "\n"
+		fi
+		#increment i++
+		i=$(expr $i + 1)
+		count=$(expr $count + 1)
+		#initialize 0 for row/sum/avg to get the values back from the next column
+		row=0
+		sum=0
+		avg=0
+	done
+	#add a new line at the end
+
+	#print values from valMeanFile
+	#delete all temp files
+	rm $valCol
+	rm $valAvg
+	rm $valMean*
+}
+
+# #function for printing the mean value of two MxN matrices
+# mean() {
+# 	row=0
+# 	col=0
+# 	while read line
+# 	do
+#
+# }
+
+#function for printing the added value of two MxN matrices
+add() {
+	valDims1="valDims1File"
+	valDims2="valDims2File"
+	valCol="valColFile"
+	valAdd="valAddFile"
+	dims $1 > "$valDims1"
+	dims $2 > "$valDims2"
+	if ! diff -q $valDims1 $valDims2 &>/dev/null; then
+		echo "dimensions are different!"
+		echo -n "valDims1File: "; cat "$valDims1"
+		echo -n "valDims2File: "; cat "$valDims2"
+	else
+		col=$(dims $1 | cut -d ' ' -f2)
+		# echo "$col"
+		sum=0
+		val=0
+		# i=1
+		# while IFS= read -r file1 && IFS= read -r file2 <&3
+		while read -r file1 && read -r file2 <&3
+		do
+			i=1
+			cut -f "$i" "$1" > "$valCol"
+			while [ $i -le $col ]
+			do
+				sum=$(echo "$file1" | cut -f "$i")
+				val=$(echo "$file2" | cut -f "$i")
+				sum=$(expr $sum + $val)
+				i=$(expr $i + 1)
+				if (( "$i" != $(($col + 1)) ))
+				then
+					printf '%s\t' "$sum" >> "$valAdd"
+				else
+					printf '%s\n' "$sum" >> "$valAdd"
+				fi
+				# i=1
+				# for i in $col
+				# do
+					# echo $line
+					# IFS_backup="$IFS"
+					# IFS=$"\n"
+					# IFS="$IFS_backup"
+					# tempFile1=($file1)
+					# tempFile2=($file2)
+				# 	i=$(expr $i + 1)
+				# done
+				# echo "sum1: $sum1"
+				# echo "sum2: $sum2"
+			done
+
+		done <$1 3<$2
+		cat "$valAdd"
+	fi
+	rm $valAdd
+	rm $valCol
+	rm $valDims1
+	rm $valDims2
+}
+
+#function for printing the multiplied value of two MxN matrices
+multiply() {
+	# echo "multiply function"
+	row1=0
+	col1=0
+	#while reading a file
+	while read line
+	do
+		#increment row++
+		row1=$(expr $row1 + 1)
+		if [ $col1 == 0 ]; then
+			for i in $line
+			do
+				#increment col++
+				col1=$(expr $col1 + 1)
+			done
+		fi
+	#takes $1 if defined, or the own standard input file name is used
+	done < $1
+	#print row1 and col1 counted
+	echo -e "$row1\n$col1"
+
+	row2=0
+	col2=0
+	#while reading a file
+	while read line
+	do
+		#increment row++
+		row2=$(expr $row2 + 1)
+		if [ $col2 == 0 ]; then
+			for i in $line
+			do
+				#increment col++
+				col2=$(expr $col2 + 1)
+			done
+		fi
+	#takes $2 if defined, or the own standard input file name is used
+	done < $2
+	#print row2 and col2 counted
+	echo -e "$row2\n$col2"
+
+	#from M(row1) x N(col1) and N(row2) x P(col2), if N != N (N must be same)
+	if test $col1 -ne $row2; then
+		echo "From MxN and NxP, N is not equal. Please check your matrix."
+		exit 1
+	# else
+		# i=1
+		# while [ $i -le $row1 ]
+		# do
+		# 	j=1
+		# 	while [ $j -le $cow2 ]
+		# 	do
+		# 		sum=0
+		# 		k=1
+		# 		while [ $k -le $col1 ]
+		# 		do
+		#
+		# 		done
+		# 	done
+		# done
+
+	fi
+	declare -A arr1
+  declare -A arr2
+
+
+	for i in $(seq 0 $(expr $row1 - 1))
+	do
+		output=
+		for j in $(seq 0 $(expr $col2 - 1))
+		do
+			sum=0
+			for k in $(seq 0 $(expr $col1 - 1))
+			do
+				a1=${arr1[$i, $k]}
+				a2=${arr2[$k, $j]}
+				p=$(expr $a1 \* $a2)
+				sum=$(expr $sum + $p)
+			done
+			output="$output$sum\\t"
+		done
+		output=${output::-2}
+		echo -e $output
+	done
+}
+
+#
+#check errors
+#
+
+#if there is only an executable file
+if test $# -lt 1; then
+  echo -e "Invalid input!\nPlease enter an operation and arguments with 'matrix'." >&2
+  exit 1
+#if the argument >= 4
+elif test $# -ge 4; then
+	echo -e "Invalid input!\nToo many arguments" >&2
+  exit 1
+fi
+#if the operation != dims/transpose/mean/add/multiply
+if [ "$1" != "dims" -a "$1" != "transpose" -a "$1" != "mean" -a "$1" != "add" -a "$1" != "multiply" ]
+then
+	echo -e "Invalid input!\nEnter a right operation" >&2
+	exit 1
+fi
+#if operation is "dims"
+if [ "$1" == "dims" ]; then
+	#if a number of arguments >= 3
+	if [ "$#" -ge "3" ]; then
+		echo -e "Invalid input!\nFormat: ./matrix dims m1" >&2
+		exit 1
+	fi
+	#if $2 does not exist
+	if [ ! -f $2 ]; then
+		echo -e "Invalid input!\nnon-existent" >&2
+		exit 1
+	#if $2 cannot read
+	elif [ ! -r $2 ]; then
+		echo -e "Invalid input!\nunreadable" >&2
+		exit 1
+	fi
+	#call "dims" function with first argument
+	dims $2
+
+#if operation is "transpose"
+elif [ "$1" == "transpose" ]; then
+	#if a number of arguments >= 3
+	if [ "$#" -ge "3" ]; then
+		echo -e "Invalid input!\nFormat: ./matrix transpose m1" >&2
+		exit 1
+	fi
+	#if $2 does not exist
+	if [ ! -f $2 ]; then
+		echo -e "Invalid input!\nnon-existent" >&2
+		exit 1
+	#if $2 cannot read
+	elif [ ! -r $2 ]; then
+		echo -e "Invalid input!\nunreadable" >&2
+		exit 1
+	fi
+	#call "transpose" function with first argument
+	transpose $2
+
+#if operation is "mean"
+elif [ "$1" == "mean" ]; then
+	#if a number of arguments >= 3
+	if [ "$#" -ge "3" ]; then
+		echo -e "Invalid input!\nFormat: ./matrix mean m1" >&2
+		exit 1
+	fi
+	#if $2 does not exist
+	if [ ! -f $2 ]; then
+		echo -e "Invalid input!\nnon-existent" >&2
+		exit 1
+	#if $2 cannot read
+	elif [ ! -r $2 ]; then
+		echo -e "Invalid input!\nunreadable" >&2
+		exit 1
+	fi
+	#call "mean" function with first argument
+	mean $2
+
+#if operation is "add"
+elif [ "$1" == "add" ]; then
+	#if a number of arguments != 3
+	if [ "$#" -ne "3" ]; then
+		echo -e "Invalid input!\nFormat: ./matrix add m1 m1" >&2
+		exit 1
+	fi
+	#if $3 does not exist
+	if [ ! -f $3 ]; then
+		echo -e "Invalid input!\nnon-existent" >&2
+		exit 1
+	#if $3 cannot read
+	elif [ ! -r $3 ]; then
+		echo -e "Invalid input!\nunreadable" >&2
+		exit 1
+	fi
+	#call "add" function with 1st and 2nd argument
+	add $2 $3
+
+#if operation is "multiply"
+elif [ "$1" == "multiply" ]; then
+	#if a number of arguments != 3
+	if [ "$#" -ne "3" ]; then
+		echo -e "Invalid input!\nFormat: ./matrix multiply m1 m2" >&2
+		exit 1
+	fi
+	#if $3 does not exist
+	if [ ! -f $3 ]; then
+		echo -e "Invalid input!\nnon-existent" >&2
+		exit 1
+	#if $3 cannot read
+	elif [ ! -r $3 ]; then
+		echo -e "Invalid input!\nunreadable" >&2
+		exit 1
+	fi
+	#call "multiply" function with first and second argument
+	multiply $2 $3
+fi
+
+exit 0

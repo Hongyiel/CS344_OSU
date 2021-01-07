@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# compileall
+#
+# Phi Luu
+#
+# Oregon State University
+# CS_344_001_W2019 Operating Systems 1
+# Program 4: OTP
+#
+# This is the compilation script for the 5 OTP programs.
+#
+# In order for this script to be executable, give it an execute permission, as
+# follows:
+#
+#   chmod 755 compileall
+#
+# To compile all C programs in this directory, each of which is contained in a
+# single  .c  source file, simply run
+#
+#   ./compileall
+#
+# To compile a list of C programs, each of which contained in one single source
+# file, run
+#
+#   ./compileall program1 program2 ... programN
+#
+# Notes: Compilation of programs with multiple source files and headers files
+# is not supported. Languages other than C are not supported.
+#
+# To clean the directory of executables, run
+#
+#   ./compileall clean
+
+CC='gcc'
+CFLAGS='-std=gnu99 -g -Wall'
+
+SRC=''
+for source_file in *.c; do
+  # build a list of source files in current directory
+  if [[ -z "${SRC}" ]]; then
+    SRC="${source_file}"
+  else
+    SRC="${SRC} ${source_file}"
+  fi
+done
+
+# Takes a list of a  .c  source file's names and tries compiling the program
+# using the specified compiler and flags above.
+#
+# SYNOPSIS
+#   compile PROGRAM1 PROGRAM2 ... PROGRAMn
+#
+# ARGUMENTS
+#   PROGRAMi  full name of a C source file, excluding the extension
+#
+# RETURNS
+#   None
+compile() {
+  # try compiling the program
+  for program in "$@"; do
+    echo "${CC} ${CFLAGS} ${program}.c -o ${program}"
+    ${CC} ${CFLAGS} ${program}.c -o ${program} && chmod 755 ${program}
+  done
+}
+
+if [[ "$#" -eq 0 ]]; then
+  # no argument, compile all single-source-file C programs in this directory
+  for source_file in ${SRC}; do
+    compile "${source_file%.*}"
+  done
+elif [[ "$#" -eq 1 ]] && [[ "$1" == 'clean' ]]; then
+  # arg clean, remove all executables with the same names as C source files
+  EXE=''
+  for source_file in ${SRC}; do
+    # build a list if executable files in current directory
+    if [[ -z "${EXE}" ]]; then
+      EXE="${source_file%.*}"
+    else
+      EXE="${EXE} ${source_file%.*}"
+    fi
+  done
+
+  echo "rm -f ${EXE}"
+  rm -f ${EXE}
+else
+  # arg a list of program names, try to compile these programs
+  compile "${@:1}"
+fi

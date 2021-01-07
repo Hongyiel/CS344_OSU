@@ -1,0 +1,9 @@
+# Executable files
+luuph.buildrooms
+luuph.adventure
+
+# Output directories
+luuph.rooms.*/
+
+# Output file
+currentTime.txt

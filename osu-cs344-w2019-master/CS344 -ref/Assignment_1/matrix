@@ -1,0 +1,416 @@
+#!/bin/bash
+
+
+###############################################################################
+# Matrix dims [MATRIX]                                                        #
+# prints error message to stderr, nothing to stdout and return value !=0 if   #
+#	Argument count is greater than 1                                      #
+#	Argument count is 1 but the file named is not readable                #
+# Otherwise, prints "Rows Cols" to stdout nothing to stderr and returns 0.    # 
+###############################################################################
+
+dims(){
+	#Initialize the row and column variables
+ 	colCount=0
+	rowCount=0
+
+	#read through the file line by line counting the rows
+	while read myLine
+	do
+ 		rowCount=`expr $rowCount + 1`
+	done < $1
+
+	#Starting at the head of the file, count the characters in the
+	#first line, which will give us the columns
+	colCount=$( head -n 1 $1 | wc -w)
+
+	#report the result, remove the temp files, and return 0
+	echo -e "$rowCount $colCount"
+	clean
+	exit 0
+ 
+  
+}
+
+###############################################################################
+# Matrix transpose [MATRIX]                                                   #
+#prits error message to stderr, nothing to stdout and return value !=0 if     #
+#	Argument count is greater than 1                                      #
+#	Agrument count is 1 but the file named is not readable                #
+#otherwise, prints the transpose of the input in a valid matrix format to     #
+#std out, nothing to stderr, and returns 0                                    # 
+###############################################################################
+
+transpose ()
+{
+ 	#get the # of columns by counting the characters in the first line
+	colCount=$( head -n 1 $1 | wc -w)
+
+	#Loop through the rows cutting the character in position i
+	#then paste that information in serial(horizontal) to the terminal 
+	for ((i=1; i<=colCount;i++))
+	do
+		cut -f "$i" "$1"  | paste -s
+	done
+
+	#remove any temp files and return 0
+	clean
+	exit 0
+ 
+
+}
+###############################################################################
+# Matrix mean [MATRX]                                                         #
+# prits error message to stderr, nothing to stdout and return value !=0 if    # 
+#	Argument count is greater than 1                                      # 
+#	Agrument count is 1 but the file named is not readable	              #
+# Otherwise prints a row vector mean of the input matrix in valid matrix      #
+# format to stdout, nothing to stderr, and returns 0. All values round to the # 
+# nearest integer with **.5 values rounded away from 0.                       #
+###############################################################################
+mean ()
+{
+ 	#count the characters in the first line to get the column number
+ 	numCol=$(head -n 1 $1 | wc -w)
+	
+	#i keeps track of the column being processed
+	i=1
+	
+	#Read through the file for each column
+	while [[ $i -le $numCol ]]
+	do
+		sum=0
+		count=0
+		mean=0
+
+		#Place every number from column i into the temp file.
+		cut -f $i $1 > tempCol$$.temp
+
+		#read the numbers from the temp file
+		while read num
+		do
+			#add the read numbers to the sum
+			sum=`expr $sum + $num`
+			#update total amount of numbers
+			count=`expr $count + 1`
+			
+			
+		done < tempCol$$.temp
+			
+		#calculate the mean with the proper rounding. 
+		#Formula taken from the assignment specs.
+		_mean=$(((sum + (count/2)*( ($sum>0) * 2 - 1 ))/$count))
+
+		#Check if the output is the end of the line
+		if [ $i -lt $numCol ]
+		then
+			#if so no newline and a tab
+			echo -e -n "$_mean\t"
+		else
+			#if not, endline no tab.
+			echo -n "$_mean"
+		fi
+
+		#update i
+		i=`expr $i + 1`
+	done
+
+	#echo out a newline for formatting
+	echo
+	#remove temp files and return 0
+	clean
+	exit 0
+ 
+
+}
+###############################################################################
+# Matrix add MATRIX_LEFT MATRIX_RIGHT                                         #
+# prits error message to stderr, nothing to stdout and return value !=0 if    #
+#	Argument count does not equal 2                                       # 
+#	Agrument count is 2  but either of the files named is not readable    #
+# Otherwise, prints the sum of both matrices in valid matrix format to stdout,#
+# nothing to stderr, and returns 0.                                           #
+###############################################################################
+add ()
+{
+	#create temporary files
+ 	touch left$$.temp
+ 	touch right$$.temp
+ 	
+	#initialize row and column variables.
+ 	rowCount1=0
+	rowCount2=0
+	#Column count is taken by counting the characters of the first line
+	colCount1=$( head -n 1 $1 | wc -w )
+	colCount2=$( head -n 1 $2 | wc -w )
+	
+	#read through both files by line and count the rows
+	while read myLine
+	do
+		rowCount1=`expr $rowCount1 + 1`
+	done < $1
+
+	while read myLine2
+	do
+		rowCount2=`expr $rowCount2 + 1`
+	done < $2
+
+	#verify that the files both have the same dimensions. 
+	#If not, print error message and return 1
+
+	if [ $colCount1 -ne $colCount2 ] || [ $rowCount1 -ne $rowCount2 ]
+	then
+		echo "Matrices are not the same dimensions" >&2
+		exit 1
+	else
+		#take the input files and replace all tabs  with newline chars
+		#This makes processing the matrices simpler.
+		lineCount=1
+		cat $1 | tr '\t' '\n' >> left$$.temp
+		cat $2 | tr '\t' '\n' >> right$$.temp
+
+		#Simultaneously read from both files.
+		while read x && read y <&3
+		do
+			#sum the two numbers
+			_sum=$((x + y))
+
+			#Check if the result is at the end of a line
+			if [ $lineCount -ne $colCount1 ]
+			then
+				#if not, no newline and a tab.
+				echo -n -e "$_sum\t"
+				lineCount=`expr $lineCount + 1`
+			else
+				#if so, newline and no tab
+				echo "$_sum"
+				#reset the line count
+				lineCount=1
+			fi
+
+		done <left$$.temp 3<right$$.temp
+		#clean and return 0
+		clean
+		exit 0
+ 	fi
+
+ 
+
+}
+
+###############################################################################
+# Matrix mutliply MATRIX_LEFT MATRIX_RIGHT                                    #
+# prits error message to stderr, nothing to stdout and return value !=0 if    #
+#	Argument count does not equal 2                                       #
+#	Agrument count is 2  but either of the files named is not readable    #
+# otherwise, prints the product of both matrices, with the first argument as  #
+# the lefft matrix and the second argument as the right matrix in valid matri #
+# format to stdout, nothing to stderr, and returns 0. 			      #	
+###############################################################################
+multiply ()
+{
+ 	
+	#Get the row and column counts. 
+	#these are used both to verify the matrix and in the 
+	#multiplication calculations.
+ 	rowCount1=0
+	rowCount2=0
+	#Column counts are calculated by counting the characters in the first
+	#line of each file.
+	colCount1=$( head -n 1 $1 | wc -w )
+	colCount2=$( head -n 1 $2 | wc -w )
+	
+	#Read through the files line by line and count the rows 
+	while read myline1
+	do
+		rowCount1=`expr $rowCount1 + 1`
+	done < $1
+
+	while read myLine2
+	do
+		rowCount2=`expr $rowCount2 + 1`
+	done < $2
+	
+	#make sure that the number of colums from matrix one and the number
+	#of rows in matrix two are the same.
+	if [ $colCount1 -ne $rowCount2 ] 
+	then
+		#if not, send error message and return 1
+		echo "Matrices are not the same dimensions" >&2
+		exit 1
+	else
+		#Create temp files
+		touch multRow$$.temp
+		touch multCol$$.temp
+		
+		#loop through all the rows for file 1
+		for ((i=1; i<=rowCount1; i++))
+		do
+			cat $1 | head -$i | tail -1 > multRow$$.temp
+			
+			# loop through the columns of the secondfile
+			for ((j=1; j<=colCount2; j++))
+			do
+				itemCount=1
+				sum=0
+				#take the number specified by j and place in temp
+				cut -f $j $2 > multCol$$.temp
+
+				#read from the column temp file
+				while read column
+				do
+					#take the item from the row
+					row=$( cut -f $itemCount multRow$$.temp )
+					#multiply the row and column
+					mult=$((row*column))
+					#add to the sum
+					sum=$((sum+mult))
+					#update the item count
+					itemCount=$((itemCount+1))
+				done < multCol$$.temp
+				
+				#Check if the result is at the end of a line
+				if [ $j -lt $colCount2 ]
+				then
+					#if not, no newline and print a tab
+					echo -e -n "$sum\t"
+				else
+					#if end of line, print newline
+					echo "$sum"
+				fi
+			done
+		
+		done	
+
+		#remove temp files and return 0
+		clean
+		exit 0
+ 	fi
+
+
+}
+###############################################################################
+# Validate: 								      #
+# Takes up to two inputs and verifies that inputs are readable files.         #
+# If file is unreadable, outputs an error message to STERR and returns 1      #
+###############################################################################
+
+validate ()
+{
+	#if any files are unreadable, print an error message and return 1
+	if [ ! -f $1 ] || [ ! -r $1 ]
+	then
+		echo "File is unreadable" >&2
+		exit 1
+	fi
+
+}
+###############################################################################
+# Clean:   								      #
+# Takes no arguments. Removes any temp files created. Will also remove left   #
+# over temp files from previous runs (if extant).			      #	
+###############################################################################
+
+clean()
+{
+ 
+ rm -f left*.temp
+ rm -f right*.temp
+ rm -f tempCol*.temp
+ rm -f stdinFile*.temp
+ rm -f multCol*.temp
+ rm -f multRow*.temp
+}
+
+	#check if there are one or two arguments and call appropriate validate
+	if [ $# -eq 3 ]
+	then
+		validate $2
+		validate $3
+	else
+		validate $2
+	fi
+	 
+	#Check for number of arguments for the three functions that only take
+	#one argument. Also checks if data was sent through stdin. If so ,reads
+	#data to a temp file and validates.
+	if [ "$1" = "dims" ] || [ "$1" = "transpose" ] || [ "$1" = "mean" ]
+	then
+
+		if [ $# -eq 1 ]
+		then
+			cat > stdinFile$$.temp
+			validate stdinFile$$.temp
+	
+		#If there are more than two arguments (the function call being
+		#one of the arguments) send error message to stderr and return 1
+		elif [ $# -gt 2 ]
+		then
+	
+			 echo "incorrect number of agruments" >&2
+			 exit 1
+		fi
+ 	
+	fi
+
+	#Make the correct functidon calls based on the $1 input
+	case $1 in
+	dims)
+		#if a file was provided, use it
+		if [ $2 ];
+		then
+			dims $2
+		#if not, use the temp file created from stdin
+		else
+			dims stdinFile$$.temp
+		fi
+		;;
+	
+	transpose)
+		#if a file was provided, usit
+		if [ $2 ];
+		then
+			transpose $2
+		#if not, use the temp file created from stdin
+		else
+			transpose stdinFile.temp
+		fi
+		;;
+	mean)
+		#if a file was provided, use it
+		if [ $2 ];
+		then
+			mean $2
+		#if not, use the temp file created from stdin
+		else
+			mean stdinFile.temp
+		fi
+		;;
+	add)
+		#ensure two files were provided.
+		if [ $# -eq 3 ]
+		then
+		add $2 $3
+		#otherwise print error and return 1.
+		else
+			echo "Invalid number of arguments" >&2
+			exit 1
+		fi
+		;;
+	multiply)
+	
+		multiply $2 $3
+	
+		;;
+	#If the function called does not match the matrix functions, 
+	#print error and return 1
+	*)
+		echo "bad command" >&2
+		exit 1
+		;;
+	esac
+	#Each function calls clean, but call it one last time just in case.
+	clean
+
+
+ 
